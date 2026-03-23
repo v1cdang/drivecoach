@@ -1,0 +1,198 @@
+"use client";
+
+import { detectTripEventFromSamples, isSharpTurnSample } from "@/lib/detect-driving-events";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { SensorSample, TripEvent } from "@/lib/sensor-types";
+import { buildTripSummary, countTripEventsByType, type TripSummaryStats } from "@/lib/trip-summary";
+import { speakDrivingFeedback } from "@/lib/voice-feedback";
+import { useSensorData } from "@/hooks/use-sensor-data";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+export type TripSessionResult = {
+  readonly durationMs: number;
+  readonly summaryText: string;
+  readonly stats: TripSummaryStats;
+  readonly tripId: string;
+};
+
+/**
+ * Owns an in-memory trip: ties sensor sampling to event detection, voice feedback,
+ * elapsed time, and Supabase persistence on stop.
+ */
+export function useTripSession(): {
+  readonly isRecording: boolean;
+  readonly events: readonly TripEvent[];
+  readonly elapsedMs: number;
+  readonly lastError: string | null;
+  readonly sessionResult: TripSessionResult | null;
+  readonly speedLimitKmh: number;
+  readonly startTrip: () => void;
+  readonly stopTrip: () => Promise<TripSessionResult | null>;
+  readonly clearSessionResult: () => void;
+  readonly requestSensorAccess: () => Promise<void>;
+} {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const [isRecording, setIsRecording] = useState(false);
+  const [events, setEvents] = useState<TripEvent[]>([]);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [sessionResult, setSessionResult] = useState<TripSessionResult | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const eventsRef = useRef<TripEvent[]>([]);
+  const lastSampleRef = useRef<SensorSample | null>(null);
+  const speedAggRef = useRef<{ sum: number; n: number }>({ sum: 0, n: 0 });
+  const sharpTurnsRef = useRef(0);
+  const startedAtRef = useRef<number | null>(null);
+  const speedLimitKmh = useMemo(() => {
+    const raw = process.env.NEXT_PUBLIC_SPEED_LIMIT_KMH;
+    if (raw === undefined || raw === "") {
+      return 100;
+    }
+    const n = Number.parseFloat(raw);
+    return Number.isFinite(n) && n > 0 ? n : 100;
+  }, []);
+  const onSample = useCallback((sample: SensorSample) => {
+    if (startedAtRef.current === null) {
+      return;
+    }
+    const previous = lastSampleRef.current;
+    lastSampleRef.current = sample;
+    if (isSharpTurnSample(sample)) {
+      sharpTurnsRef.current += 1;
+    }
+    if (sample.speedMps !== null && sample.speedMps > 0) {
+      speedAggRef.current = {
+        sum: speedAggRef.current.sum + sample.speedMps,
+        n: speedAggRef.current.n + 1,
+      };
+    }
+    const evt = detectTripEventFromSamples(previous, sample);
+    if (evt !== null) {
+      eventsRef.current = [...eventsRef.current, evt];
+      setEvents(eventsRef.current);
+      speakDrivingFeedback(evt.type);
+    }
+  }, []);
+  const { sensorError, requestSensorAccess } = useSensorData(isRecording, onSample);
+  useEffect(() => {
+    if (!isRecording) {
+      return undefined;
+    }
+    const id = window.setInterval(() => {
+      const start = startedAtRef.current;
+      if (start === null) {
+        return;
+      }
+      setElapsedMs(Date.now() - start);
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [isRecording]);
+  const startTrip = useCallback((): void => {
+    eventsRef.current = [];
+    lastSampleRef.current = null;
+    speedAggRef.current = { sum: 0, n: 0 };
+    sharpTurnsRef.current = 0;
+    startedAtRef.current = Date.now();
+    setEvents([]);
+    setElapsedMs(0);
+    setSessionResult(null);
+    setLastError(null);
+    setIsRecording(true);
+  }, []);
+  const stopTrip = useCallback(async (): Promise<TripSessionResult | null> => {
+    setIsRecording(false);
+    const startedAt = startedAtRef.current;
+    startedAtRef.current = null;
+    if (startedAt === null) {
+      return null;
+    }
+    const endedAt = Date.now();
+    const durationMs = endedAt - startedAt;
+    const eventList = eventsRef.current;
+    const counts = countTripEventsByType(eventList);
+    const { sum, n } = speedAggRef.current;
+    const averageSpeedMps = n > 0 ? sum / n : null;
+    const stats: TripSummaryStats = {
+      durationMs,
+      averageSpeedMps,
+      sharpTurnSamples: sharpTurnsRef.current,
+      ...counts,
+    };
+    const summaryText = buildTripSummary(stats);
+    setLastError(null);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError !== null || user === null) {
+      setLastError(userError?.message ?? "Not signed in");
+      const local: TripSessionResult = {
+        durationMs,
+        summaryText,
+        stats,
+        tripId: "",
+      };
+      setSessionResult(local);
+      return local;
+    }
+    const { data: tripRow, error: tripError } = await supabase
+      .from("trips")
+      .insert({
+        user_id: user.id,
+        started_at: new Date(startedAt).toISOString(),
+        ended_at: new Date(endedAt).toISOString(),
+        duration_seconds: Math.max(1, Math.round(durationMs / 1000)),
+        event_count: eventList.length,
+        average_speed_mps: averageSpeedMps,
+        summary_text: summaryText,
+      })
+      .select("id")
+      .single();
+    if (tripError !== null || tripRow === null) {
+      setLastError(tripError?.message ?? "Failed to save trip");
+      const local: TripSessionResult = {
+        durationMs,
+        summaryText,
+        stats,
+        tripId: "",
+      };
+      setSessionResult(local);
+      return local;
+    }
+    const tripId = tripRow.id as string;
+    if (eventList.length > 0) {
+      const rows = eventList.map((e) => ({
+        trip_id: tripId,
+        type: e.type,
+        occurred_at_ms: e.timestamp,
+        value: e.value,
+      }));
+      const { error: evError } = await supabase.from("trip_events").insert(rows);
+      if (evError !== null) {
+        setLastError(evError.message);
+      }
+    }
+    const result: TripSessionResult = {
+      durationMs,
+      summaryText,
+      stats,
+      tripId,
+    };
+    setSessionResult(result);
+    return result;
+  }, [supabase]);
+  const clearSessionResult = useCallback((): void => {
+    setSessionResult(null);
+  }, []);
+  return {
+    isRecording,
+    events,
+    elapsedMs,
+    lastError: sensorError ?? lastError,
+    sessionResult,
+    speedLimitKmh,
+    startTrip,
+    stopTrip,
+    clearSessionResult,
+    requestSensorAccess,
+  };
+}

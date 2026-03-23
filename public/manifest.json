@@ -1,0 +1,18 @@
+{
+  "name": "DriveCoach",
+  "short_name": "DriveCoach",
+  "description": "Real-time driving coach using device sensors",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
