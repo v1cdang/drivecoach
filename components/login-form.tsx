@@ -10,6 +10,9 @@ import { useCallback, useState, type FormEvent } from "react";
 export function LoginForm() {
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/dashboard";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const baseUrl: string =
+    siteUrl !== undefined && siteUrl.trim() !== "" ? siteUrl : window.location.origin;
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -21,12 +24,11 @@ export function LoginForm() {
       setError(null);
       setMessage(null);
       const supabase = createSupabaseBrowserClient();
-      const origin = window.location.origin;
       const nextQuery = new URLSearchParams({ next: nextPath.startsWith("/") ? nextPath : "/dashboard" });
       const { error: signError } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${origin}/auth/callback?${nextQuery.toString()}`,
+          emailRedirectTo: `${baseUrl}/auth/callback?${nextQuery.toString()}`,
         },
       });
       setPending(false);
@@ -36,7 +38,7 @@ export function LoginForm() {
       }
       setMessage("Check your email for the login link.");
     },
-    [email, nextPath],
+    [email, nextPath, baseUrl],
   );
   return (
     <form onSubmit={(ev) => void onSubmit(ev)} className="flex flex-col gap-4">
