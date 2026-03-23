@@ -10,7 +10,7 @@ function magnitude3(x: number | null, y: number | null, z: number | null): numbe
 
 /**
  * Compares the latest sample to the previous one and emits at most one primary event
- * (priority: harsh brake > fast accel > speeding) to reduce duplicate voice cues.
+ * (priority: harsh brake > rapid acceleration > speeding) to reduce duplicate voice cues.
  */
 export function detectTripEventFromSamples(
   previous: SensorSample | null,
@@ -31,7 +31,7 @@ export function detectTripEventFromSamples(
     }
     if (delta >= drivingConfig.fastAccelSpeedGainMps) {
       return {
-        type: "fast_acceleration",
+        type: "rapid_acceleration",
         timestamp: current.timestamp,
         value: delta,
       };
@@ -55,7 +55,7 @@ export function detectTripEventFromSamples(
     );
     if (previous === null || prevImpulse === null || impulse > prevImpulse + 4) {
       return {
-        type: "fast_acceleration",
+        type: "rapid_acceleration",
         timestamp: current.timestamp,
         value: impulse,
       };

@@ -5,7 +5,7 @@ export type TripSummaryStats = {
   readonly eventCount: number;
   readonly averageSpeedMps: number | null;
   readonly harshBrakeCount: number;
-  readonly fastAccelCount: number;
+  readonly rapidAccelerationCount: number;
   readonly speedingCount: number;
   readonly sharpTurnSamples: number;
 };
@@ -16,9 +16,9 @@ export type TripSummaryStats = {
  */
 export function buildTripSummary(stats: TripSummaryStats): string {
   const parts: string[] = [];
-  if (stats.harshBrakeCount > stats.fastAccelCount + 1) {
+  if (stats.harshBrakeCount > stats.rapidAccelerationCount + 1) {
     parts.push("You tend to brake late and harshly; anticipate stops earlier.");
-  } else if (stats.fastAccelCount > stats.harshBrakeCount + 1) {
+  } else if (stats.rapidAccelerationCount > stats.harshBrakeCount + 1) {
     parts.push("You often accelerate aggressively after slowing down; smooth inputs save fuel and stress.");
   } else {
     parts.push("Your braking and acceleration balance looks fairly even for this trip.");
@@ -40,17 +40,17 @@ export function buildTripSummary(stats: TripSummaryStats): string {
 export function countTripEventsByType(events: readonly TripEvent[]): {
   readonly eventCount: number;
   readonly harshBrakeCount: number;
-  readonly fastAccelCount: number;
+  readonly rapidAccelerationCount: number;
   readonly speedingCount: number;
 } {
   let harshBrakeCount = 0;
-  let fastAccelCount = 0;
+  let rapidAccelerationCount = 0;
   let speedingCount = 0;
   for (const event of events) {
     if (event.type === "harsh_brake") {
       harshBrakeCount += 1;
-    } else if (event.type === "fast_acceleration") {
-      fastAccelCount += 1;
+    } else if (event.type === "rapid_acceleration") {
+      rapidAccelerationCount += 1;
     } else if (event.type === "speeding") {
       speedingCount += 1;
     }
@@ -58,7 +58,7 @@ export function countTripEventsByType(events: readonly TripEvent[]): {
   return {
     eventCount: events.length,
     harshBrakeCount,
-    fastAccelCount,
+    rapidAccelerationCount,
     speedingCount,
   };
 }

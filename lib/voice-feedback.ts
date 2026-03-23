@@ -3,7 +3,7 @@ import type { TripEventType } from "@/lib/sensor-types";
 
 const MESSAGES: Record<TripEventType, string> = {
   harsh_brake: "You're braking too hard",
-  fast_acceleration: "Ease acceleration",
+  rapid_acceleration: "Ease acceleration",
   speeding: "Slow down",
 };
 

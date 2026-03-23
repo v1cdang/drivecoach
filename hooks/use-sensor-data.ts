@@ -1,7 +1,7 @@
 "use client";
 
 import { drivingConfig } from "@/lib/driving-config";
-import type { SensorSample } from "@/lib/sensor-types";
+import type { SensorData } from "@/lib/sensor-types";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type GeoSnapshot = {
@@ -14,36 +14,30 @@ type MotionSnapshot = {
   readonly accelerationX: number | null;
   readonly accelerationY: number | null;
   readonly accelerationZ: number | null;
-  readonly rotationAlpha: number | null;
-  readonly rotationBeta: number | null;
-  readonly rotationGamma: number | null;
 };
 
 const emptyMotion: MotionSnapshot = {
   accelerationX: null,
   accelerationY: null,
   accelerationZ: null,
-  rotationAlpha: null,
-  rotationBeta: null,
-  rotationGamma: null,
 };
 
 /**
- * Subscribes to Geolocation + DeviceMotion while `isRecording` is true, then every
- * ~500ms builds one {@link SensorSample} so detection logic sees stable cadence.
+ * Samples geolocation and acceleration every ~500ms while trip is active.
  */
-export function useSensorData(
-  isRecording: boolean,
-  onSample: (sample: SensorSample) => void,
-): {
+export function useSensorData(isTripActive: boolean): {
+  readonly speed: number | null;
+  readonly acceleration: SensorData["acceleration"];
+  readonly timestamp: number;
   readonly sensorError: string | null;
   readonly requestSensorAccess: () => Promise<void>;
 } {
+  const [speed, setSpeed] = useState<number | null>(null);
+  const [acceleration, setAcceleration] = useState<SensorData["acceleration"]>(null);
+  const [timestamp, setTimestamp] = useState<number>(Date.now());
   const [sensorError, setSensorError] = useState<string | null>(null);
   const geoRef = useRef<GeoSnapshot | null>(null);
   const motionRef = useRef<MotionSnapshot>(emptyMotion);
-  const onSampleRef = useRef(onSample);
-  onSampleRef.current = onSample;
   const requestSensorAccess = useCallback(async (): Promise<void> => {
     setSensorError(null);
     await new Promise<void>((resolve, reject) => {
@@ -61,18 +55,20 @@ export function useSensorData(
       setSensorError(message);
       throw err;
     });
-    const orientationCtor = DeviceOrientationEvent as unknown as {
+    const motionCtor = DeviceMotionEvent as unknown as {
       requestPermission?: () => Promise<PermissionState>;
     };
-    if (typeof orientationCtor.requestPermission === "function") {
-      const state = await orientationCtor.requestPermission();
+    if (typeof motionCtor.requestPermission === "function") {
+      const state = await motionCtor.requestPermission();
       if (state !== "granted") {
-        setSensorError("Device motion permission not granted; gyro/accel hints may be missing.");
+        setSensorError("Device motion permission not granted; acceleration hints may be missing.");
       }
     }
   }, []);
   useEffect(() => {
-    if (!isRecording) {
+    if (!isTripActive) {
+      setSpeed(null);
+      setAcceleration(null);
       return undefined;
     }
     if (!navigator.geolocation) {
@@ -94,39 +90,31 @@ export function useSensorData(
     );
     const onMotion = (e: DeviceMotionEvent): void => {
       const a = e.acceleration;
-      const r = e.rotationRate;
       motionRef.current = {
         accelerationX: a?.x ?? null,
         accelerationY: a?.y ?? null,
         accelerationZ: a?.z ?? null,
-        rotationAlpha: r?.alpha ?? null,
-        rotationBeta: r?.beta ?? null,
-        rotationGamma: r?.gamma ?? null,
       };
     };
     window.addEventListener("devicemotion", onMotion);
     const intervalId = window.setInterval(() => {
       const g = geoRef.current;
       const m = motionRef.current;
-      const sample: SensorSample = {
-        timestamp: Date.now(),
-        latitude: g?.latitude ?? null,
-        longitude: g?.longitude ?? null,
-        speedMps: g?.speedMps ?? null,
-        accelerationX: m.accelerationX,
-        accelerationY: m.accelerationY,
-        accelerationZ: m.accelerationZ,
-        rotationAlpha: m.rotationAlpha,
-        rotationBeta: m.rotationBeta,
-        rotationGamma: m.rotationGamma,
-      };
-      onSampleRef.current(sample);
+      const nextTimestamp = Date.now();
+      const speedKmh = g?.speedMps !== null && g?.speedMps !== undefined ? g.speedMps * 3.6 : null;
+      setSpeed(speedKmh);
+      if (m.accelerationX === null || m.accelerationY === null || m.accelerationZ === null) {
+        setAcceleration(null);
+      } else {
+        setAcceleration({ x: m.accelerationX, y: m.accelerationY, z: m.accelerationZ });
+      }
+      setTimestamp(nextTimestamp);
     }, drivingConfig.sampleIntervalMs);
     return () => {
       navigator.geolocation.clearWatch(watchId);
       window.removeEventListener("devicemotion", onMotion);
       window.clearInterval(intervalId);
     };
-  }, [isRecording]);
-  return { sensorError, requestSensorAccess };
+  }, [isTripActive]);
+  return { speed, acceleration, timestamp, sensorError, requestSensorAccess };
 }

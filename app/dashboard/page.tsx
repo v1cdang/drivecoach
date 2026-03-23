@@ -19,6 +19,10 @@ function formatSpeedKmh(mps: number | null): string {
   return `${Math.round(mps * 3.6)} km/h`;
 }
 
+function formatEventType(eventType: string): string {
+  return eventType.replace(/_/g, " ");
+}
+
 /**
  * Primary driving surface: large start/stop controls and live trip stats.
  */
@@ -26,6 +30,8 @@ export default function DashboardPage() {
   const {
     isRecording,
     events,
+    currentEvent,
+    currentSpeedKmh,
     elapsedMs,
     lastError,
     sessionResult,
@@ -72,6 +78,22 @@ export default function DashboardPage() {
         <p className="mt-4 text-center text-sm text-zinc-400">
           Events this trip: <span className="text-white">{events.length}</span>
         </p>
+        {isRecording ? (
+          <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-zinc-500">Current speed</p>
+              <p className="mt-1 text-lg font-semibold text-white">
+                {currentSpeedKmh === null ? "—" : `${Math.round(currentSpeedKmh)} km/h`}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-zinc-500">Last event</p>
+              <p className="mt-1 text-lg font-semibold text-white">
+                {currentEvent === null ? "—" : formatEventType(currentEvent.type)}
+              </p>
+            </div>
+          </div>
+        ) : null}
       </div>
       <div className="flex flex-col gap-3">
         {!isRecording ? (
@@ -80,7 +102,7 @@ export default function DashboardPage() {
             onClick={startTrip}
             className="w-full rounded-2xl bg-emerald-600 py-6 text-xl font-semibold text-white shadow-lg shadow-emerald-900/40 active:bg-emerald-500"
           >
-            Start trip
+            Start Trip
           </button>
         ) : (
           <button
@@ -89,7 +111,7 @@ export default function DashboardPage() {
             onClick={() => void onStop()}
             className="w-full rounded-2xl bg-red-600 py-6 text-xl font-semibold text-white active:bg-red-500 disabled:opacity-60"
           >
-            {stopping ? "Saving…" : "Stop trip"}
+            {stopping ? "Saving…" : "Stop Trip"}
           </button>
         )}
       </div>

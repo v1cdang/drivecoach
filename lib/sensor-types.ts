@@ -13,7 +13,17 @@ export type SensorSample = {
   readonly rotationGamma: number | null;
 };
 
-export type TripEventType = "harsh_brake" | "fast_acceleration" | "speeding";
+export type SensorData = {
+  readonly speed: number | null;
+  readonly acceleration: {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+  } | null;
+  readonly timestamp: number;
+};
+
+export type TripEventType = "harsh_brake" | "rapid_acceleration" | "speeding";
 
 /** Persisted / in-memory driving event. */
 export type TripEvent = {
