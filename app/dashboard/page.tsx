@@ -2,6 +2,7 @@
 
 import { SignOutButton } from "@/components/sign-out-button";
 import { useTripSession } from "@/hooks/use-trip-session";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 
@@ -23,6 +24,11 @@ function formatEventType(eventType: string): string {
   return eventType.replace(/_/g, " ");
 }
 
+const LiveTripMap = dynamic(
+  async () => (await import("@/components/live-trip-map")).LiveTripMap,
+  { ssr: false },
+);
+
 /**
  * Primary driving surface: large start/stop controls and live trip stats.
  */
@@ -32,6 +38,7 @@ export default function DashboardPage() {
     events,
     currentEvent,
     currentSpeedKmh,
+    routePoints,
     elapsedMs,
     lastError,
     sessionResult,
@@ -40,6 +47,8 @@ export default function DashboardPage() {
     stopTrip,
     clearSessionResult,
     requestSensorAccess,
+    currentLatitude,
+    currentLongitude,
   } = useTripSession();
   const [stopping, setStopping] = useState(false);
   const onStop = useCallback(async (): Promise<void> => {
@@ -95,6 +104,16 @@ export default function DashboardPage() {
           </div>
         ) : null}
       </div>
+      {isRecording ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-zinc-400">Live map</p>
+          <LiveTripMap
+            routePoints={routePoints}
+            currentLatitude={currentLatitude}
+            currentLongitude={currentLongitude}
+          />
+        </div>
+      ) : null}
       <div className="flex flex-col gap-3">
         {!isRecording ? (
           <button

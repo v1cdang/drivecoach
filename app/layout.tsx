@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import "./globals.css";
+import "leaflet/dist/leaflet.css";
 import { AddToHomePrompt } from "@/components/add-to-home-prompt";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 

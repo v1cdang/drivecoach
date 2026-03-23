@@ -8,6 +8,8 @@ import { useEffect, useMemo, useRef } from "react";
 
 type DrivingCoachState = {
   readonly speed: number | null;
+  readonly latitude: number | null;
+  readonly longitude: number | null;
   readonly sensorData: SensorData | null;
   readonly currentEvent: TripEvent | null;
   readonly events: readonly TripEvent[];
@@ -19,13 +21,14 @@ type DrivingCoachState = {
  * Composes sensor sampling, event analysis, and voice feedback for active trips.
  */
 export function useDrivingCoach(isTripActive: boolean): DrivingCoachState {
-  const { speed, acceleration, timestamp, sensorError, requestSensorAccess } = useSensorData(isTripActive);
+  const { speed, latitude, longitude, acceleration, timestamp, sensorError, requestSensorAccess } =
+    useSensorData(isTripActive);
   const sensorData = useMemo((): SensorData | null => {
     if (!isTripActive) {
       return null;
     }
-    return { speed, acceleration, timestamp };
-  }, [acceleration, isTripActive, speed, timestamp]);
+    return { speed, latitude, longitude, acceleration, timestamp };
+  }, [acceleration, isTripActive, latitude, longitude, speed, timestamp]);
   const { currentEvent, events } = useDrivingAnalysis(sensorData, isTripActive);
   const { speakEvent } = useVoiceCoach();
   const lastAnnouncedEventRef = useRef<number | null>(null);
@@ -46,6 +49,8 @@ export function useDrivingCoach(isTripActive: boolean): DrivingCoachState {
   }, [isTripActive]);
   return {
     speed,
+    latitude,
+    longitude,
     sensorData,
     currentEvent,
     events,

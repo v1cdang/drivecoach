@@ -7,6 +7,12 @@ import type { TripEvent } from "@/lib/sensor-types";
 import { buildTripSummary, countTripEventsByType, type TripSummaryStats } from "@/lib/trip-summary";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+export type TripRoutePoint = {
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly timestamp: number;
+};
+
 export type TripSessionResult = {
   readonly durationMs: number;
   readonly summaryText: string;
@@ -23,6 +29,9 @@ export function useTripSession(): {
   readonly events: readonly TripEvent[];
   readonly currentEvent: TripEvent | null;
   readonly currentSpeedKmh: number | null;
+  readonly currentLatitude: number | null;
+  readonly currentLongitude: number | null;
+  readonly routePoints: readonly TripRoutePoint[];
   readonly elapsedMs: number;
   readonly lastError: string | null;
   readonly sessionResult: TripSessionResult | null;
@@ -32,16 +41,61 @@ export function useTripSession(): {
   readonly clearSessionResult: () => void;
   readonly requestSensorAccess: () => Promise<void>;
 } {
+  const MIN_ROUTE_POINT_DISTANCE_METERS = 5;
+  const MAX_ROUTE_POINTS = 600;
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [isRecording, setIsRecording] = useState(false);
+  const [routePoints, setRoutePoints] = useState<readonly TripRoutePoint[]>([]);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [sessionResult, setSessionResult] = useState<TripSessionResult | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const speedAggRef = useRef<{ sum: number; n: number }>({ sum: 0, n: 0 });
   const startedAtRef = useRef<number | null>(null);
   const speedLimitKmh = useMemo(() => drivingConfig.speedLimitKmh, []);
-  const { speed: currentSpeedKmh, currentEvent, events: coachEvents, sensorError, requestSensorAccess } =
-    useDrivingCoach(isRecording);
+  const {
+    speed: currentSpeedKmh,
+    latitude,
+    longitude,
+    currentEvent,
+    events: coachEvents,
+    sensorError,
+    requestSensorAccess,
+  } = useDrivingCoach(isRecording);
+  useEffect(() => {
+    function calculateDistanceMeters(startPoint: TripRoutePoint, endPoint: TripRoutePoint): number {
+      const toRadians = (degrees: number): number => (degrees * Math.PI) / 180;
+      const earthRadiusMeters = 6371000;
+      const deltaLatitude = toRadians(endPoint.latitude - startPoint.latitude);
+      const deltaLongitude = toRadians(endPoint.longitude - startPoint.longitude);
+      const startLatitudeRadians = toRadians(startPoint.latitude);
+      const endLatitudeRadians = toRadians(endPoint.latitude);
+      const haversineValue =
+        Math.sin(deltaLatitude / 2) * Math.sin(deltaLatitude / 2) +
+        Math.sin(deltaLongitude / 2) *
+          Math.sin(deltaLongitude / 2) *
+          Math.cos(startLatitudeRadians) *
+          Math.cos(endLatitudeRadians);
+      const arcValue = 2 * Math.atan2(Math.sqrt(haversineValue), Math.sqrt(1 - haversineValue));
+      return earthRadiusMeters * arcValue;
+    }
+    if (!isRecording || latitude === null || longitude === null) {
+      return;
+    }
+    const nextPoint: TripRoutePoint = { latitude, longitude, timestamp: Date.now() };
+    setRoutePoints((currentPoints) => {
+      const lastPoint = currentPoints.at(-1) ?? null;
+      if (lastPoint !== null) {
+        const distanceMeters = calculateDistanceMeters(lastPoint, nextPoint);
+        if (distanceMeters < MIN_ROUTE_POINT_DISTANCE_METERS) {
+          return currentPoints;
+        }
+      }
+      const appendedPoints = [...currentPoints, nextPoint];
+      return appendedPoints.length > MAX_ROUTE_POINTS
+        ? appendedPoints.slice(-MAX_ROUTE_POINTS)
+        : appendedPoints;
+    });
+  }, [isRecording, latitude, longitude]);
   useEffect(() => {
     if (!isRecording) {
       return;
@@ -70,6 +124,7 @@ export function useTripSession(): {
   const startTrip = useCallback((): void => {
     speedAggRef.current = { sum: 0, n: 0 };
     startedAtRef.current = Date.now();
+    setRoutePoints([]);
     setElapsedMs(0);
     setSessionResult(null);
     setLastError(null);
@@ -165,6 +220,9 @@ export function useTripSession(): {
     events: coachEvents,
     currentEvent,
     currentSpeedKmh,
+    currentLatitude: latitude,
+    currentLongitude: longitude,
+    routePoints,
     elapsedMs,
     lastError: sensorError ?? lastError,
     sessionResult,

@@ -27,12 +27,16 @@ const emptyMotion: MotionSnapshot = {
  */
 export function useSensorData(isTripActive: boolean): {
   readonly speed: number | null;
+  readonly latitude: number | null;
+  readonly longitude: number | null;
   readonly acceleration: SensorData["acceleration"];
   readonly timestamp: number;
   readonly sensorError: string | null;
   readonly requestSensorAccess: () => Promise<void>;
 } {
   const [speed, setSpeed] = useState<number | null>(null);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [acceleration, setAcceleration] = useState<SensorData["acceleration"]>(null);
   const [timestamp, setTimestamp] = useState<number>(Date.now());
   const [sensorError, setSensorError] = useState<string | null>(null);
@@ -68,6 +72,8 @@ export function useSensorData(isTripActive: boolean): {
   useEffect(() => {
     if (!isTripActive) {
       setSpeed(null);
+      setLatitude(null);
+      setLongitude(null);
       setAcceleration(null);
       return undefined;
     }
@@ -103,6 +109,8 @@ export function useSensorData(isTripActive: boolean): {
       const nextTimestamp = Date.now();
       const speedKmh = g?.speedMps !== null && g?.speedMps !== undefined ? g.speedMps * 3.6 : null;
       setSpeed(speedKmh);
+      setLatitude(g?.latitude ?? null);
+      setLongitude(g?.longitude ?? null);
       if (m.accelerationX === null || m.accelerationY === null || m.accelerationZ === null) {
         setAcceleration(null);
       } else {
@@ -116,5 +124,5 @@ export function useSensorData(isTripActive: boolean): {
       window.clearInterval(intervalId);
     };
   }, [isTripActive]);
-  return { speed, acceleration, timestamp, sensorError, requestSensorAccess };
+  return { speed, latitude, longitude, acceleration, timestamp, sensorError, requestSensorAccess };
 }

@@ -15,6 +15,8 @@ export type SensorSample = {
 
 export type SensorData = {
   readonly speed: number | null;
+  readonly latitude: number | null;
+  readonly longitude: number | null;
   readonly acceleration: {
     readonly x: number;
     readonly y: number;
