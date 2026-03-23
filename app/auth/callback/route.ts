@@ -1,3 +1,4 @@
+import { getSupabaseUrlAndKey } from "@/lib/supabase/get-url-and-key";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -15,9 +16,8 @@ export async function GET(request: Request) {
     return NextResponse.redirect(redirectUrl);
   }
   const cookieStore = await cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) {
+  const { url, anonKey, hasProjectEnv } = getSupabaseUrlAndKey();
+  if (!hasProjectEnv) {
     return NextResponse.redirect(new URL("/login", requestUrl.origin));
   }
   const supabase = createServerClient(url, anonKey, {

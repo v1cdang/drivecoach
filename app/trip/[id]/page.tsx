@@ -24,6 +24,9 @@ function formatDate(iso: string): string {
 
 type PageProps = { readonly params: Promise<{ readonly id: string }> };
 
+/** Per-request rendering; trip is user-specific and must not be statically baked at build time. */
+export const dynamic = "force-dynamic";
+
 /**
  * Trip detail with stored summary and per-event rows from Supabase.
  */

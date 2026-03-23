@@ -15,6 +15,9 @@ function formatDate(iso: string): string {
   return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
+/** Avoid static prerender / build-time execution issues with auth + redirect. */
+export const dynamic = "force-dynamic";
+
 /**
  * Lists past trips for the signed-in user (newest first).
  */
