@@ -1,6 +1,7 @@
 "use client";
 
 import { drivingConfig } from "@/lib/driving-config";
+import { primeSpeechSynthesisFromUserGesture } from "@/lib/prime-speech-synthesis";
 import type { SensorData } from "@/lib/sensor-types";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -68,6 +69,7 @@ export function useSensorData(isTripActive: boolean): {
         setSensorError("Device motion permission not granted; acceleration hints may be missing.");
       }
     }
+    primeSpeechSynthesisFromUserGesture();
   }, []);
   useEffect(() => {
     if (!isTripActive) {

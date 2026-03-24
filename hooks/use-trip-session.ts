@@ -3,9 +3,10 @@
 import { useDrivingCoach } from "@/hooks/use-driving-coach";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { drivingConfig } from "@/lib/driving-config";
+import { primeSpeechSynthesisFromUserGesture } from "@/lib/prime-speech-synthesis";
 import type { TripEvent } from "@/lib/sensor-types";
 import { buildTripSummary, countTripEventsByType, type TripSummaryStats } from "@/lib/trip-summary";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 export type TripSessionResult = {
   readonly durationMs: number;
@@ -49,6 +50,10 @@ export function useTripSession(): {
     requestSensorAccess,
     lastCoachingMessage,
   } = useDrivingCoach(isRecording);
+  const eventsSnapshotRef = useRef<readonly TripEvent[]>([]);
+  useLayoutEffect(() => {
+    eventsSnapshotRef.current = coachEvents;
+  }, [coachEvents]);
   useEffect(() => {
     if (!isRecording) {
       return;
@@ -75,6 +80,7 @@ export function useTripSession(): {
     return () => window.clearInterval(id);
   }, [isRecording]);
   const startTrip = useCallback((): void => {
+    primeSpeechSynthesisFromUserGesture();
     speedAggRef.current = { sum: 0, n: 0 };
     startedAtRef.current = Date.now();
     setElapsedMs(0);
@@ -91,7 +97,7 @@ export function useTripSession(): {
     }
     const endedAt = Date.now();
     const durationMs = endedAt - startedAt;
-    const eventList = coachEvents;
+    const eventList = eventsSnapshotRef.current;
     const counts = countTripEventsByType(eventList);
     const { sum, n } = speedAggRef.current;
     const averageSpeedMps = n > 0 ? sum / n : null;
@@ -163,7 +169,7 @@ export function useTripSession(): {
     };
     setSessionResult(result);
     return result;
-  }, [coachEvents, supabase]);
+  }, [supabase]);
   const clearSessionResult = useCallback((): void => {
     setSessionResult(null);
   }, []);
