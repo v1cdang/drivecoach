@@ -8,13 +8,11 @@ import { useEffect, useMemo, useRef } from "react";
 
 type DrivingCoachState = {
   readonly speed: number | null;
-  readonly latitude: number | null;
-  readonly longitude: number | null;
-  readonly sensorData: SensorData | null;
   readonly currentEvent: TripEvent | null;
   readonly events: readonly TripEvent[];
   readonly sensorError: string | null;
   readonly requestSensorAccess: () => Promise<void>;
+  readonly lastCoachingMessage: string | null;
 };
 
 /**
@@ -30,7 +28,7 @@ export function useDrivingCoach(isTripActive: boolean): DrivingCoachState {
     return { speed, latitude, longitude, acceleration, timestamp };
   }, [acceleration, isTripActive, latitude, longitude, speed, timestamp]);
   const { currentEvent, events } = useDrivingAnalysis(sensorData, isTripActive);
-  const { speakEvent } = useVoiceCoach();
+  const { speakEvent, lastCoachingMessage } = useVoiceCoach(isTripActive);
   const lastAnnouncedEventRef = useRef<number | null>(null);
   useEffect(() => {
     if (currentEvent === null) {
@@ -49,12 +47,10 @@ export function useDrivingCoach(isTripActive: boolean): DrivingCoachState {
   }, [isTripActive]);
   return {
     speed,
-    latitude,
-    longitude,
-    sensorData,
     currentEvent,
     events,
     sensorError,
     requestSensorAccess,
+    lastCoachingMessage,
   };
 }

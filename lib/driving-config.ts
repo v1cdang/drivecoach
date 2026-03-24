@@ -17,7 +17,6 @@ export const drivingConfig = {
   fastAccelSpeedGainMps: 2.2,
   harshAccelImpulseMps2: 12,
   sharpTurnRotationDps: 45,
-  voiceDebounceMs: 5500,
   get speedLimitMps(): number {
     return readSpeedLimitKmh() / 3.6;
   },
