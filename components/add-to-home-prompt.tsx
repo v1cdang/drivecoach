@@ -39,20 +39,20 @@ export function AddToHomePrompt() {
   }
   if (deferred !== null) {
     return (
-      <div className="fixed bottom-4 left-4 right-4 z-20 mx-auto max-w-lg rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-lg">
-        <p className="text-sm text-zinc-200">Install DriveCoach for quick access from your home screen.</p>
+      <div className="fixed bottom-4 left-4 right-4 z-20 mx-auto max-w-lg rounded-xl border border-[#dce6f7] bg-white p-4 shadow-lg shadow-[#0b2f6b]/10">
+        <p className="text-sm text-[#1d447e]">Install DriveCoach for quick access from your home screen.</p>
         <div className="mt-3 flex gap-2">
           <button
             type="button"
             onClick={() => void onInstall()}
-            className="flex-1 rounded-lg bg-emerald-600 py-3 text-base font-semibold text-white active:bg-emerald-500"
+            className="flex-1 rounded-lg bg-[#10d4c5] py-3 text-base font-semibold text-[#05244f] active:bg-[#0bc4b6]"
           >
             Add to Home Screen
           </button>
           <button
             type="button"
             onClick={() => setDismissed(true)}
-            className="rounded-lg border border-zinc-600 px-4 py-3 text-sm text-zinc-300"
+            className="rounded-lg border border-[#b9cde9] px-4 py-3 text-sm text-[#3d6296]"
           >
             Not now
           </button>
@@ -62,14 +62,14 @@ export function AddToHomePrompt() {
   }
   if (isIos) {
     return (
-      <div className="fixed bottom-4 left-4 right-4 z-20 mx-auto max-w-lg rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-lg">
-        <p className="text-sm text-zinc-200">
+      <div className="fixed bottom-4 left-4 right-4 z-20 mx-auto max-w-lg rounded-xl border border-[#dce6f7] bg-white p-4 shadow-lg shadow-[#0b2f6b]/10">
+        <p className="text-sm text-[#1d447e]">
           On iPhone: tap Share, then &quot;Add to Home Screen&quot; to install DriveCoach.
         </p>
         <button
           type="button"
           onClick={() => setDismissed(true)}
-          className="mt-3 w-full rounded-lg border border-zinc-600 py-2 text-sm text-zinc-300"
+          className="mt-3 w-full rounded-lg border border-[#b9cde9] py-2 text-sm text-[#3d6296]"
         >
           OK
         </button>

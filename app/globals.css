@@ -3,9 +3,10 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  @apply min-h-dvh bg-zinc-950 text-zinc-100 antialiased;
+  @apply min-h-dvh bg-white text-[#0b2f6b] antialiased;
+  font-family: "Inter", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }

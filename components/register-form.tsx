@@ -78,7 +78,7 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={(ev) => void onSubmit(ev)} className="flex flex-col gap-4">
-      <label className="flex flex-col gap-2 text-sm text-zinc-300">
+      <label className="flex flex-col gap-2 text-sm text-[#325b93]">
         Email
         <input
           type="email"
@@ -86,11 +86,11 @@ export function RegisterForm() {
           autoComplete="email"
           value={email}
           onChange={(ev) => setEmail(ev.target.value)}
-          className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-base text-white outline-none ring-emerald-600 focus:ring-2"
+          className="rounded-xl border border-[#bfd2ed] bg-white px-4 py-4 text-base text-[#0b2f6b] outline-none ring-[#10d4c5] focus:ring-2"
           placeholder="you@example.com"
         />
       </label>
-      <label className="flex flex-col gap-2 text-sm text-zinc-300">
+      <label className="flex flex-col gap-2 text-sm text-[#325b93]">
         Password
         <input
           type="password"
@@ -98,11 +98,11 @@ export function RegisterForm() {
           autoComplete="new-password"
           value={password}
           onChange={(ev) => setPassword(ev.target.value)}
-          className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-base text-white outline-none ring-emerald-600 focus:ring-2"
+          className="rounded-xl border border-[#bfd2ed] bg-white px-4 py-4 text-base text-[#0b2f6b] outline-none ring-[#10d4c5] focus:ring-2"
           placeholder="Create a password"
         />
       </label>
-      <label className="flex flex-col gap-2 text-sm text-zinc-300">
+      <label className="flex flex-col gap-2 text-sm text-[#325b93]">
         Confirm password
         <input
           type="password"
@@ -110,18 +110,18 @@ export function RegisterForm() {
           autoComplete="new-password"
           value={passwordConfirmation}
           onChange={(ev) => setPasswordConfirmation(ev.target.value)}
-          className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-base text-white outline-none ring-emerald-600 focus:ring-2"
+          className="rounded-xl border border-[#bfd2ed] bg-white px-4 py-4 text-base text-[#0b2f6b] outline-none ring-[#10d4c5] focus:ring-2"
           placeholder="Re-type your password"
         />
       </label>
       <button
         type="submit"
         disabled={pending}
-        className="rounded-xl bg-emerald-600 py-4 text-lg font-semibold text-white active:bg-emerald-500 disabled:opacity-60"
+        className="rounded-xl bg-[#10d4c5] py-4 text-lg font-semibold text-[#05244f] active:bg-[#0bc4b6] disabled:opacity-60"
       >
         {pending ? "Creating…" : "Create account"}
       </button>
-      {message !== null ? <p className="text-sm text-emerald-400">{message}</p> : null}
+      {message !== null ? <p className="text-sm text-[#12897f]">{message}</p> : null}
       {error !== null ? <p className="text-sm text-red-400">{error}</p> : null}
     </form>
   );
