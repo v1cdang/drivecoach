@@ -13,9 +13,9 @@ function readSpeedLimitKmh(): number {
 /** Runtime tuning for sampling, detection, and voice (read by hooks on client). */
 export const drivingConfig = {
   sampleIntervalMs: 500,
-  harshBrakeSpeedDropMps: 2.2,
-  fastAccelSpeedGainMps: 2.2,
-  harshAccelImpulseMps2: 12,
+  harshBrakeSpeedDropMps: 4.2,
+  fastAccelSpeedGainMps: 4.2,
+  harshAccelImpulseMps2: 16,
   sharpTurnRotationDps: 45,
   get speedLimitMps(): number {
     return readSpeedLimitKmh() / 3.6;
