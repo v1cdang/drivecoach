@@ -124,6 +124,21 @@ export function useTripSession(): {
       setSessionResult(local);
       return local;
     }
+    const { error: ensureUserError } = await supabase.from("users").upsert(
+      { id: user.id, email: user.email ?? null },
+      { onConflict: "id" },
+    );
+    if (ensureUserError !== null) {
+      setLastError(ensureUserError.message);
+      const local: TripSessionResult = {
+        durationMs,
+        summaryText,
+        stats,
+        tripId: "",
+      };
+      setSessionResult(local);
+      return local;
+    }
     const { data: tripRow, error: tripError } = await supabase
       .from("trips")
       .insert({
